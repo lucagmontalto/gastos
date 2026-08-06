@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EaseMoney - Finanzas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-body: #e5e7eb;
+            --bg-app: #f3f4f6;
+            --surface: #ffffff;
+            --surface-hover: #f9fafb;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --primary: #0088b0;
+            --primary-shadow: rgba(0, 136, 176, 0.4);
+            --balance-card-bg: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            --balance-text: #ffffff;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+            --warning: #f59e0b;
+            --border-color: #e5e7eb;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --modal-overlay: rgba(0,0,0,0.5);
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #0f1115;
+            --bg-app: #15181e;
+            --surface: #1f222a;
+            --surface-hover: #2a2e37;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #38bdf8;
+            --primary-shadow: rgba(56, 189, 248, 0.3);
+            --balance-card-bg: linear-gradient(135deg, #2563eb 0%, #0369a1 100%);
+            --balance-text: #ffffff;
+            --success: #34d399;
+            --success-bg: rgba(16, 185, 129, 0.2);
+            --danger: #f87171;
+            --danger-bg: rgba(239, 68, 68, 0.2);
+            --warning: #fbbf24;
+            --border-color: #374151;
+            --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            --modal-overlay: rgba(0,0,0,0.75);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg-body); color: var(--text-main);
+            height: 100vh; display: flex; justify-content: center; align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .app-container {
+            width: 100%; height: 100%; max-width: 480px;
+            background-color: var(--bg-app); position: relative;
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        @media (min-width: 481px) {
+            .app-container { height: 90vh; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 8px solid var(--surface); }
+        }
+
+        header { padding: 24px 24px 16px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; background-color: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; }
+        .greeting h1 { font-size: 18px; font-weight: 600; color: var(--text-main); }
+        .greeting p { font-size: 13px; color: var(--text-muted); }
+
+        .header-actions button {
+            background: var(--surface); border: 1px solid var(--border-color);
+            width: 40px; height: 40px; border-radius: 50%; font-size: 18px;
+            color: var(--text-main); cursor: pointer; transition: all 0.2s;
+        }
+
+        .view { display: none; flex: 1; overflow-y: auto; padding: 0 24px 100px; scrollbar-width: none; }
+        .view::-webkit-scrollbar { display: none; }
+        .view.active { display: block; }
+
+        /* Tarjeta Balance */
+        .balance-card {
+            background: var(--balance-card-bg); border-radius: 24px; padding: 24px;
+            color: var(--balance-text); margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;
+        }
+        .balance-card::after {
+            content: '$'; position: absolute; right: -10px; bottom: -30px; font-size: 140px; font-family: Georgia, serif; color: rgba(255, 255, 255, 0.08); font-weight: bold;
+        }
+        .balance-label { font-size: 14px; opacity: 0.9; margin-bottom: 8px; }
+        .balance-amount { font-size: 36px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.5px; }
+        .balance-stats { display: flex; justify-content: space-between; }
+        .stat-item { display: flex; align-items: center; gap: 10px; z-index: 1; }
+        .stat-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .stat-icon.income { background-color: rgba(255,255,255,0.2); color: #fff; }
+        .stat-icon.expense { background-color: rgba(255,255,255,0.2); color: #fff; }
+        .stat-details p { font-size: 11px; opacity: 0.8; }
+        .stat-details h4 { font-size: 15px; font-weight: 600; }
+
+        /* Títulos */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; margin-top: 8px; }
+        .section-title { font-size: 18px; font-weight: 600; color: var(--text-main); }
+
+        /* Billeteras */
+        .wallets-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; margin-bottom: 8px;}
+        .wallets-scroll::-webkit-scrollbar { display: none; }
+        .wallet-pill {
+            background-color: var(--surface); padding: 16px; border-radius: 16px;
+            display: flex; align-items: center; gap: 14px; min-width: max-content; flex-shrink: 0;
+            border: 1px solid var(--border-color); box-shadow: var(--card-shadow); cursor: pointer; transition: transform 0.1s;
+        }
+        .wallet-pill:active { transform: scale(0.98); }
+        .wallet-pill i { font-size: 20px; color: var(--primary); width: 24px; text-align: center; }
+        .wallet-pill-info h5 { font-size: 13px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+        .wallet-pill-info span { font-size: 15px; font-weight: 600; color: var(--text-main); white-space: nowrap; }
+
+        .wallet-list-card {
+            background-color: var(--surface); border-radius: 16px; padding: 20px;
+            margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow);
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        }
+        .wallet-list-card:active { transform: scale(0.98); }
+        .wallet-list-left { display: flex; align-items: center; gap: 16px; }
+        .wallet-list-icon { width: 48px; height: 48px; border-radius: 12px; background-color: var(--bg-app); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .wallet-list-details h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .wallet-list-details p { font-size: 13px; color: var(--text-muted); }
+        .wallet-list-right { text-align: right; }
+        .wallet-list-right h3 { font-size: 18px; font-weight: 700; color: var(--text-main); }
+
+        /* Transacciones */
+        .transactions-list { display: flex; flex-direction: column; gap: 12px; }
+        .transaction-item {
+            background-color: var(--surface); border-radius: 16px; padding: 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            border: 1px solid var(--border-color); box-shadow: var(--card-shadow); cursor: pointer;
+        }
+        .transaction-item:active { background-color: var(--surface-hover); }
+        .t-info-wrapper { display: flex; align-items: center; gap: 14px; overflow: hidden; }
+        .t-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;}
+        .t-details { overflow: hidden; }
+        .t-details h4 { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .t-details p { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .t-amount { font-weight: 600; font-size: 16px; flex-shrink: 0; margin-left: 8px;}
+        .t-amount.negative { color: var(--text-main); }
+        .t-amount.positive { color: var(--success); }
+        .t-amount.transfer { color: var(--primary); }
+
+        /* Portafolio (Balanz) */
+        .portfolio-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;}
+        .portfolio-item {
+            background-color: var(--bg-app); border-radius: 12px; padding: 12px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid var(--border-color);
+        }
+        .p-info h5 { font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .p-info p { font-size: 11px; color: var(--text-muted); margin-top: 2px;}
+        .p-values { text-align: right; }
+        .p-values h5 { font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .p-values p { font-size: 11px; color: var(--primary); cursor: pointer; margin-top: 2px; text-decoration: underline;}
+
+        /* FAB */
+        .fab-container { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        .fab {
+            width: 56px; height: 56px; border-radius: 50%; background-color: var(--primary); color: white;
+            display: flex; align-items: center; justify-content: center; font-size: 22px;
+            box-shadow: 0 8px 20px var(--primary-shadow); border: none; cursor: pointer; transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.95); }
+
+        /* Nav Inferior */
+        .bottom-nav {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 70px;
+            background-color: var(--surface); display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; border-top: 1px solid var(--border-color); z-index: 90;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: var(--text-muted); text-decoration: none; font-size: 11px; font-weight: 500;
+            width: 60px; padding: 8px 0; cursor: pointer; transition: color 0.2s;
+        }
+        .nav-item.active { color: var(--primary); }
+        .nav-item i { font-size: 20px; transition: transform 0.2s; }
+        .nav-item.active i { transform: translateY(-2px); }
+        .nav-spacer { width: 60px; }
+
+        /* Modales */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--modal-overlay); z-index: 200; display: none; justify-content: center; align-items: flex-end;
+            backdrop-filter: blur(3px); opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content {
+            background-color: var(--surface); width: 100%; border-top-left-radius: 24px; border-top-right-radius: 24px;
+            padding: 24px; transform: translateY(100%); transition: transform 0.3s ease; max-height: 90%; overflow-y: auto; scrollbar-width: none;
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { font-size: 20px; color: var(--text-main); font-weight: 600; }
+        .close-modal { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; padding: 4px; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        .form-control {
+            width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color);
+            background-color: var(--bg-app); color: var(--text-main); font-size: 16px; outline: none; transition: border-color 0.2s;
+        }
+        .form-control:focus { border-color: var(--primary); }
+        .btn-submit {
+            width: 100%; padding: 16px; border-radius: 12px; background-color: var(--primary); color: white;
+            border: none; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 12px var(--primary-shadow);
+        }
+        .btn-danger {
+            width: 100%; padding: 16px; border-radius: 12px; background-color: transparent; color: var(--danger);
+            border: 1px solid var(--danger); font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+        .btn-edit {
+            width: 100%; padding: 16px; border-radius: 12px; background-color: var(--surface-hover); color: var(--text-main);
+            border: 1px solid var(--border-color); font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+
+        /* Stats & Profile */
+        .filter-tabs { display: flex; background: var(--bg-app); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+        .filter-tab { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-radius: 8px; }
+        .filter-tab.active { background: var(--surface); color: var(--text-main); box-shadow: var(--card-shadow); }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .stat-box { background: var(--surface); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; text-align: center; }
+        .stat-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-box h3 { font-size: 18px; color: var(--text-main); }
+        .stat-box.highlight h3 { color: var(--primary); }
+
+        .chart-container { background: var(--surface); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 24px; }
+        .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); text-align: center;}
+
+        .profile-menu { display: flex; flex-direction: column; gap: 12px; }
+        .profile-item { background: var(--surface); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; }
+        .profile-item i { font-size: 20px; color: var(--primary); width: 24px; text-align: center; }
+        .profile-item span { font-size: 15px; font-weight: 500; flex: 1; }
+        .profile-item .fa-chevron-right { color: var(--text-muted); font-size: 14px; width: auto;}
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state i { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header>
+            <div class="user-info">
+                <div class="avatar">L</div>
+                <div class="greeting">
+                    <p>Buen día,</p>
+                    <h1>Luca</h1>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" aria-label="Cambiar tema"><i class="fa-solid fa-moon"></i></button>
+            </div>
+        </header>
+
+        <!-- VISTA: HOME -->
+        <main class="view active" id="view-home">
+            <div class="balance-card">
+                <div class="balance-label">Patrimonio Neto</div>
+                <div class="balance-amount" id="homeTotalBalance">$ 0</div>
+                <div class="balance-stats">
+                    <div class="stat-item">
+                        <div class="stat-icon income"><i class="fa-solid fa-arrow-down"></i></div>
+                        <div class="stat-details">
+                            <p>Ingresos Mes</p>
+                            <h4 id="homeMonthIncome">$ 0</h4>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon expense"><i class="fa-solid fa-arrow-up"></i></div>
+                        <div class="stat-details">
+                            <p>Gastos Mes</p>
+                            <h4 id="homeMonthExpense">$ 0</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <h3 class="section-title">Mis Billeteras</h3>
+            </div>
+            <div class="wallets-scroll" id="homeWalletsScroll"></div>
+
+            <div class="section-header">
+                <h3 class="section-title">Últimos Movimientos</h3>
+            </div>
+            <div class="transactions-list" id="homeTxList"></div>
+        </main>
+
+        <!-- VISTA: BILLETERAS -->
+        <main class="view" id="view-wallets">
+            <div class="section-header">
+                <h3 class="section-title">Cuentas e Inversiones</h3>
+            </div>
+            <div id="walletsFullList"></div>
+        </main>
+
+        <!-- VISTA: EVOLUCIÓN -->
+        <main class="view" id="view-stats">
+            <div class="section-header">
+                <h3 class="section-title">Evolución</h3>
+            </div>
+            
+            <div class="filter-tabs">
+                <div class="filter-tab active" data-period="week">Semana</div>
+                <div class="filter-tab" data-period="month">Mes</div>
+                <div class="filter-tab" data-period="year">Año</div>
+                <div class="filter-tab" data-period="all">Todo</div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <p>Ingresos</p>
+                    <h3 id="statIncome">$ 0</h3>
+                </div>
+                <div class="stat-box">
+                    <p>Gastos</p>
+                    <h3 id="statExpense">$ 0</h3>
+                </div>
+                <div class="stat-box highlight">
+                    <p>Ahorrado</p>
+                    <h3 id="statSaved">$ 0</h3>
+                </div>
+                <div class="stat-box">
+                    <p>Balance Neto</p>
+                    <h3 id="statNet">$ 0</h3>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Gastos a lo largo del tiempo</div>
+                <canvas id="lineChart" height="200"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Distribución de Gastos</div>
+                <canvas id="doughnutChart" height="200"></canvas>
+            </div>
+        </main>
+
+        <!-- VISTA: PERFIL -->
+        <main class="view" id="view-profile">
+            <div class="section-header">
+                <h3 class="section-title">Mi Perfil</h3>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 30px; margin-top: 10px;">
+                <div class="avatar" style="width: 80px; height: 80px; font-size: 32px; margin: 0 auto 16px;">L</div>
+                <h2 style="font-size: 20px;">Luca</h2>
+                <p style="color: var(--text-muted); font-size: 14px;">Usuario de EaseMoney</p>
+            </div>
+
+            <div class="profile-menu">
+                <input type="file" id="importDataInput" style="display:none" accept=".json">
+                <div class="profile-item" id="importDataBtn">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Importar Datos (JSON)</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-item" id="exportDataBtn">
+                    <i class="fa-solid fa-file-export"></i>
+                    <span>Exportar Datos (JSON)</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-item" id="clearDataBtn" style="color: var(--danger);">
+                    <i class="fa-solid fa-trash" style="color: var(--danger);"></i>
+                    <span style="color: var(--danger);">Borrar todos los datos</span>
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="profile-item" style="opacity: 0.5;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Versión 2.1.0</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Floating Action Button -->
+        <div class="fab-container">
+            <button class="fab" id="addTxBtn">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" data-target="view-home"><i class="fa-solid fa-house"></i><span>Home</span></div>
+            <div class="nav-item" data-target="view-wallets"><i class="fa-solid fa-wallet"></i><span>Billeteras</span></div>
+            <div class="nav-spacer"></div>
+            <div class="nav-item" data-target="view-stats"><i class="fa-solid fa-chart-pie"></i><span>Evolución</span></div>
+            <div class="nav-item" data-target="view-profile"><i class="fa-solid fa-user"></i><span>Perfil</span></div>
+        </nav>
+
+        <!-- MODALES -->
+
+        <!-- Modal Agregar/Editar Transacción -->
+        <div class="modal-overlay" id="txModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="txModalTitle">Nuevo Movimiento</h2>
+                    <button class="close-modal" id="closeTxModal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="txForm">
+                    <input type="hidden" id="txId">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select class="form-control" id="txType" required>
+                            <option value="expense">Gasto</option>
+                            <option value="income">Ingreso</option>
+                            <option value="savings">Ahorro / Inversión</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Monto ($)</label>
+                        <input type="number" class="form-control" id="txAmount" placeholder="0" step="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select class="form-control" id="txCategory" required></select>
+                    </div>
+
+                    <div class="form-group" id="walletGroup">
+                        <label>Billetera / Cuenta</label>
+                        <select class="form-control" id="txWallet"></select>
+                    </div>
+
+                    <div id="savingsGroup" class="hidden">
+                        <div class="form-group">
+                            <label>Origen (Se debita de)</label>
+                            <select class="form-control" id="txFromWallet"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Destino (Se suma a)</label>
+                            <select class="form-control" id="txToWallet"></select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descripción (Opcional)</label>
+                        <input type="text" class="form-control" id="txDesc" placeholder="Ej: Supermercado">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" class="form-control" id="txDate" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">Guardar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Detalles Transacción -->
+        <div class="modal-overlay" id="txDetailsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Detalle del Movimiento</h2>
+                    <button class="close-modal" id="closeTxDetailsModal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="txDetailsContent" style="margin-bottom: 20px;"></div>
+                <button class="btn-edit" id="btnEditTx">Editar</button>
+                <button class="btn-danger" id="btnDeleteTx">Eliminar Movimiento</button>
+            </div>
+        </div>
+
+        <!-- Modal Detalles Billetera -->
+        <div class="modal-overlay" id="walletDetailsModal">
+            <div class="modal-content" style="height: 85%;">
+                <div class="modal-header">
+                    <h2 id="walletDetailsTitle">Billetera</h2>
+                    <button class="close-modal" id="closeWalletDetailsModal"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="balance-card" style="margin-bottom: 16px;">
+                    <div class="balance-label">Balance Actual</div>
+                    <div class="balance-amount" id="walletDetailsBalance" onclick="editWalletTotal()" style="cursor: pointer;" title="Toca para editar saldo total">$ 0 <i class="fa-solid fa-pen" style="font-size: 18px; opacity: 0.7; margin-left: 8px;"></i></div>
+                </div>
+
+                <!-- Sección Especial Portafolio (Solo para Balanz) -->
+                <div id="portfolioSection" class="hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 class="section-title" style="font-size: 16px; margin: 0;">Mi Portafolio</h3>
+                        <p style="font-size: 11px; color: var(--text-muted);">Toca la cantidad para editar</p>
+                    </div>
+                    <div class="portfolio-list" id="portfolioList"></div>
+                </div>
+
+
+
+                <h3 class="section-title" style="font-size: 16px; margin-bottom: 12px;">Últimos Movimientos</h3>
+                <div class="transactions-list" id="walletTxsList"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        
+        const expenseCategories = ['Personal', 'Transporte', 'Entretenimiento', 'Deporte', 'Asado', 'Comida', 'Comida Laburo', 'Salud', 'Regalos', 'Suscripciones', 'Otros'];
+        const savingsCategories = ['Acciones', 'CEDEARS', 'Fondos', 'LECAPS', 'ONs', 'USD', 'Otros'];
+        
+        const categoryIcons = {
+            'Personal': { icon: 'fa-user', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' },
+            'Transporte': { icon: 'fa-train-subway', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+            'Entretenimiento': { icon: 'fa-film', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },
+            'Deporte': { icon: 'fa-shoe-prints', color: '#f97316', bg: 'rgba(249, 115, 22, 0.15)' },
+            'Asado': { icon: 'fa-fire-burner', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+            'Comida': { icon: 'fa-utensils', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+            'Comida Laburo': { icon: 'fa-briefcase', color: '#eab308', bg: 'rgba(234, 179, 8, 0.15)' },
+            'Salud': { icon: 'fa-heart-pulse', color: '#14b8a6', bg: 'rgba(20, 184, 166, 0.15)' },
+            'Regalos': { icon: 'fa-gift', color: '#d946ef', bg: 'rgba(217, 70, 239, 0.15)' },
+            'Suscripciones': { icon: 'fa-rotate-right', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)' },
+            'Ingreso': { icon: 'fa-money-bill-wave', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+            'Acciones': { icon: 'fa-arrow-trend-up', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+            'CEDEARS': { icon: 'fa-globe', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' },
+            'Fondos': { icon: 'fa-layer-group', color: '#14b8a6', bg: 'rgba(20, 184, 166, 0.15)' },
+            'LECAPS': { icon: 'fa-file-invoice-dollar', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+            'ONs': { icon: 'fa-building', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },
+            'USD': { icon: 'fa-dollar-sign', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+            'Otros': { icon: 'fa-ellipsis', color: '#6b7280', bg: 'rgba(107, 114, 128, 0.15)' }
+        };
+
+        const defaultWallets = [
+            { id: 'galicia', name: 'Galicia', initialBalance: 0, icon: 'fa-building-columns' },
+            { id: 'mercadopago', name: 'Mercado Pago', initialBalance: 0, icon: 'fa-handshake' },
+            { id: 'balanz', name: 'Balanz', initialBalance: 0, icon: 'fa-chart-line' } 
+        ];
+
+        // Portafolio (Solo nominales)
+        const defaultPortfolio = [];
+
+        let wallets = JSON.parse(localStorage.getItem('em_v3_wallets')) || defaultWallets;
+                let transactions = JSON.parse(localStorage.getItem('em_v3_transactions')) || [];
+        let portfolio = JSON.parse(localStorage.getItem('em_v3_portfolio')) || defaultPortfolio;
+        
+
+
+        let calculatedWallets = []; 
+        let activeTxId = null; 
+        
+        let lineChartInstance = null;
+        let pieChartInstance = null;
+
+        // --- THEME ---
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlEl = document.documentElement;
+        let currentTheme = localStorage.getItem('em_theme') || 'dark';
+        htmlEl.setAttribute('data-theme', currentTheme);
+        themeToggle.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+
+        themeToggle.addEventListener('click', () => {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            htmlEl.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('em_theme', currentTheme);
+            themeToggle.innerHTML = currentTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            if (document.getElementById('view-stats').classList.contains('active')) renderCharts();
+        });
+
+        // --- UTILS ---
+        const formatMoney = (amount) => {
+            return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(amount);
+        };
+
+        const getWalletName = (id) => {
+            const w = wallets.find(w => w.id === id);
+            return w ? w.name : 'Desconocida';
+        };
+
+        const formatDateToInput = (isoString) => {
+            return new Date(isoString).toISOString().split('T')[0];
+        };
+
+        // --- LOGIC ---
+        function calculateBalances() {
+            // Aseguramos que sea número con || 0 para evitar $ NaN
+            calculatedWallets = wallets.map(w => ({ ...w, balance: parseInt(w.initialBalance) || 0 }));
+            let totalBalance = 0;
+            let monthIncome = 0;
+            let monthExpense = 0;
+            let monthSaved = 0;
+
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            transactions.forEach(tx => {
+                const amount = parseInt(tx.amount) || 0;
+                const txDate = new Date(tx.date);
+                const isThisMonth = txDate >= startOfMonth;
+
+                if (tx.type === 'income') {
+                    if (isThisMonth) monthIncome += amount;
+                    const w = calculatedWallets.find(w => w.id === tx.wallet);
+                    if (w) w.balance += amount;
+                } else if (tx.type === 'expense') {
+                    if (isThisMonth) monthExpense += amount;
+                    const w = calculatedWallets.find(w => w.id === tx.wallet);
+                    if (w) w.balance -= amount;
+                } else if (tx.type === 'savings') {
+                    if (isThisMonth) monthSaved += amount;
+                    const wFrom = calculatedWallets.find(w => w.id === tx.fromWallet);
+                    const wTo = calculatedWallets.find(w => w.id === tx.toWallet);
+                    if (wFrom) wFrom.balance -= amount;
+                    if (wTo) wTo.balance += amount;
+                }
+            });
+
+            // Sumamos los balances de las billeteras (Balanz ahora toma su valor desde 'Patrimonio Inicial')
+            calculatedWallets.forEach(w => totalBalance += w.balance);
+
+            // Update Home
+            document.getElementById('homeTotalBalance').innerText = formatMoney(totalBalance);
+            document.getElementById('homeMonthIncome').innerText = formatMoney(monthIncome);
+            document.getElementById('homeMonthExpense').innerText = formatMoney(monthExpense);
+
+            // Update Stats
+            document.getElementById('statIncome').innerText = formatMoney(monthIncome);
+            document.getElementById('statExpense').innerText = formatMoney(monthExpense);
+            document.getElementById('statSaved').innerText = formatMoney(monthSaved);
+            document.getElementById('statNet').innerText = formatMoney(monthIncome - monthExpense);
+        }
+
+        // --- RENDER VIEWS ---
+        
+        function generateTxHTML(tx) {
+            let desc = tx.desc || tx.category;
+            let amountClass, sign, walletStr;
+            
+            if (tx.type === 'income') {
+                amountClass = 'positive'; sign = '+'; walletStr = getWalletName(tx.wallet);
+            } else if (tx.type === 'expense') {
+                amountClass = 'negative'; sign = '-'; walletStr = getWalletName(tx.wallet);
+            } else {
+                amountClass = 'transfer'; sign = ''; 
+                desc = `Ahorro: ${tx.category}`;
+                walletStr = `${getWalletName(tx.fromWallet)} ➝ ${getWalletName(tx.toWallet)}`;
+            }
+            
+            const catData = categoryIcons[tx.category] || categoryIcons['Otros'];
+            const dateStr = new Date(tx.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+
+            return `
+                <div class="transaction-item" onclick="openTxDetails(${tx.id})">
+                    <div class="t-info-wrapper">
+                        <div class="t-icon" style="background-color: ${catData.bg}; color: ${catData.color};">
+                            <i class="fa-solid ${catData.icon}"></i>
+                        </div>
+                        <div class="t-details">
+                            <h4>${desc}</h4>
+                            <p>${dateStr} • ${walletStr}</p>
+                        </div>
+                    </div>
+                    <div class="t-amount ${amountClass}">${sign}${formatMoney(tx.amount)}</div>
+                </div>
+            `;
+        }
+
+        function renderHome() {
+            calculateBalances();
+            const wScroll = document.getElementById('homeWalletsScroll');
+            wScroll.innerHTML = calculatedWallets.map(w => `
+                <div class="wallet-pill" onclick="openWalletDetails('${w.id}')">
+                    <i class="fa-solid ${w.icon}"></i>
+                    <div class="wallet-pill-info">
+                        <h5>${w.name}</h5>
+                        <span>${formatMoney(w.balance)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            const txList = document.getElementById('homeTxList');
+            const recentTx = [...transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+            if (recentTx.length === 0) {
+                txList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-receipt"></i><p>No hay movimientos.</p></div>`;
+            } else {
+                txList.innerHTML = recentTx.map(generateTxHTML).join('');
+            }
+        }
+
+        function renderWalletsView() {
+            calculateBalances();
+            const container = document.getElementById('walletsFullList');
+            container.innerHTML = calculatedWallets.map(w => `
+                <div class="wallet-list-card" onclick="openWalletDetails('${w.id}')">
+                    <div class="wallet-list-left">
+                        <div class="wallet-list-icon"><i class="fa-solid ${w.icon}"></i></div>
+                        <div class="wallet-list-details">
+                            <h4>${w.name}</h4>
+                        </div>
+                    </div>
+                    <div class="wallet-list-right">
+                        <h3>${formatMoney(w.balance)}</h3>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        let currentPeriod = 'week';
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                currentPeriod = e.target.getAttribute('data-period');
+                renderCharts();
+            });
+        });
+
+        function renderCharts() {
+            calculateBalances(); 
+            const now = new Date();
+            let startDate = new Date();
+            
+            if(currentPeriod === 'week') startDate.setDate(now.getDate() - 7);
+            else if(currentPeriod === 'month') startDate.setMonth(now.getMonth() - 1);
+            else if(currentPeriod === 'year') startDate.setFullYear(now.getFullYear() - 1);
+            else startDate = new Date(2000, 0, 1);
+
+            const filteredTx = transactions.filter(tx => new Date(tx.date) >= startDate);
+            const expenses = filteredTx.filter(tx => tx.type === 'expense');
+
+            const groupedByDate = {};
+            expenses.forEach(tx => {
+                const d = formatDateToInput(tx.date);
+                groupedByDate[d] = (groupedByDate[d] || 0) + parseInt(tx.amount);
+            });
+            const sortedDates = Object.keys(groupedByDate).sort((a,b) => new Date(a) - new Date(b));
+            const lineData = sortedDates.map(d => groupedByDate[d]);
+            const lineLabels = sortedDates.map(d => {
+                const date = new Date(d);
+                date.setMinutes(date.getMinutes() + date.getTimezoneOffset()); 
+                return date.toLocaleDateString('es-AR', {day:'2-digit', month:'short'});
+            });
+
+            const groupedByCat = {};
+            expenses.forEach(tx => {
+                groupedByCat[tx.category] = (groupedByCat[tx.category] || 0) + parseInt(tx.amount);
+            });
+            const pieLabels = Object.keys(groupedByCat);
+            const pieData = Object.values(groupedByCat);
+            const pieColors = pieLabels.map(cat => categoryIcons[cat] ? categoryIcons[cat].color : '#6b7280');
+
+            const textColor = currentTheme === 'dark' ? '#9ca3af' : '#6b7280';
+            const gridColor = currentTheme === 'dark' ? '#374151' : '#e5e7eb';
+
+            if(lineChartInstance) lineChartInstance.destroy();
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            lineChartInstance = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: lineLabels,
+                    datasets: [{
+                        label: 'Gastos ($)',
+                        data: lineData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: textColor }, grid: { display: false } },
+                        y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                    }
+                }
+            });
+
+            if(pieChartInstance) pieChartInstance.destroy();
+            const ctxPie = document.getElementById('doughnutChart').getContext('2d');
+            pieChartInstance = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        data: pieData,
+                        backgroundColor: pieColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { 
+                        legend: { position: 'right', labels: { color: textColor, font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        // --- NAVIGATION SPA ---
+        document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.addEventListener('click', (e) => {
+                const target = nav.getAttribute('data-target');
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.getElementById(target).classList.add('active');
+                nav.classList.add('active');
+                
+                if (target === 'view-home') renderHome();
+                if (target === 'view-wallets') renderWalletsView();
+                if (target === 'view-stats') renderCharts();
+            });
+        });
+
+        // --- MODALES & FORMS ---
+        
+        const txModal = document.getElementById('txModal');
+        const txForm = document.getElementById('txForm');
+        
+        document.getElementById('addTxBtn').addEventListener('click', () => {
+            activeTxId = null;
+            document.getElementById('txModalTitle').innerText = "Nuevo Movimiento";
+            txForm.reset();
+            document.getElementById('txDate').value = formatDateToInput(new Date());
+            updateFormFields();
+            txModal.classList.add('active');
+        });
+
+        document.getElementById('closeTxModal').addEventListener('click', () => { txModal.classList.remove('active'); });
+
+        const txType = document.getElementById('txType');
+        const txCategory = document.getElementById('txCategory');
+        const walletGroup = document.getElementById('walletGroup');
+        const savingsGroup = document.getElementById('savingsGroup');
+
+        function updateFormFields() {
+            const type = txType.value;
+            txCategory.innerHTML = '';
+            
+            const walletOptions = wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+            document.getElementById('txWallet').innerHTML = walletOptions;
+            document.getElementById('txFromWallet').innerHTML = walletOptions;
+            document.getElementById('txToWallet').innerHTML = walletOptions;
+            document.getElementById('txToWallet').value = 'balanz'; 
+
+            if (type === 'income') {
+                txCategory.innerHTML = '<option value="Ingreso">Ingreso</option>';
+                walletGroup.classList.remove('hidden');
+                savingsGroup.classList.add('hidden');
+            } else if (type === 'expense') {
+                txCategory.innerHTML = expenseCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+                walletGroup.classList.remove('hidden');
+                savingsGroup.classList.add('hidden');
+            } else if (type === 'savings') {
+                txCategory.innerHTML = savingsCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+                walletGroup.classList.add('hidden');
+                savingsGroup.classList.remove('hidden');
+            }
+        }
+
+        txType.addEventListener('change', updateFormFields);
+
+        txForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const type = txType.value;
+            const txData = {
+                id: activeTxId || Date.now(),
+                type: type,
+                amount: parseInt(document.getElementById('txAmount').value),
+                category: txCategory.value,
+                desc: document.getElementById('txDesc').value,
+                date: document.getElementById('txDate').value + 'T12:00:00Z'
+            };
+
+            if (type === 'savings') {
+                txData.fromWallet = document.getElementById('txFromWallet').value;
+                txData.toWallet = document.getElementById('txToWallet').value;
+            } else {
+                txData.wallet = document.getElementById('txWallet').value;
+            }
+
+            if (activeTxId) {
+                const idx = transactions.findIndex(t => t.id === activeTxId);
+                if(idx > -1) transactions[idx] = txData;
+            } else {
+                transactions.push(txData);
+            }
+
+            localStorage.setItem('em_v3_transactions', JSON.stringify(transactions));
+            txModal.classList.remove('active');
+            refreshActiveView();
+        });
+
+        // Modal Detalles Transacción
+        const txDetailsModal = document.getElementById('txDetailsModal');
+        document.getElementById('closeTxDetailsModal').addEventListener('click', () => txDetailsModal.classList.remove('active'));
+
+        window.openTxDetails = (id) => {
+            activeTxId = id;
+            const tx = transactions.find(t => t.id === id);
+            if(!tx) return;
+
+            const content = document.getElementById('txDetailsContent');
+            const dateStr = new Date(tx.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+            
+            let walletInfo = '';
+            let amountStr = '';
+            if(tx.type === 'savings') {
+                walletInfo = `Origen: ${getWalletName(tx.fromWallet)}<br>Destino: ${getWalletName(tx.toWallet)}`;
+                amountStr = `<span style="color: var(--primary)">${formatMoney(tx.amount)}</span>`;
+            } else {
+                walletInfo = `Billetera: ${getWalletName(tx.wallet)}`;
+                amountStr = `<span style="color: ${tx.type==='income'?'var(--success)':'var(--text-main)'}">${tx.type==='income'?'+':'-'}${formatMoney(tx.amount)}</span>`;
+            }
+
+            content.innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 32px; font-weight: bold; margin-bottom: 8px;">${amountStr}</div>
+                    <p style="color: var(--text-muted); font-size: 14px;">${dateStr}</p>
+                </div>
+                <div style="background: var(--bg-app); padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.6;">
+                    <p><strong>Categoría:</strong> ${tx.category}</p>
+                    <p><strong>Descripción:</strong> ${tx.desc || '-'}</p>
+                    <p>${walletInfo}</p>
+                </div>
+            `;
+            txDetailsModal.classList.add('active');
+        };
+
+        document.getElementById('btnDeleteTx').addEventListener('click', () => {
+            if(confirm('¿Seguro que deseas eliminar este movimiento?')) {
+                transactions = transactions.filter(t => t.id !== activeTxId);
+                localStorage.setItem('em_v3_transactions', JSON.stringify(transactions));
+                txDetailsModal.classList.remove('active');
+                refreshActiveView();
+            }
+        });
+
+        document.getElementById('btnEditTx').addEventListener('click', () => {
+            const tx = transactions.find(t => t.id === activeTxId);
+            if(!tx) return;
+            txDetailsModal.classList.remove('active');
+            
+            document.getElementById('txModalTitle').innerText = "Editar Movimiento";
+            txType.value = tx.type;
+            updateFormFields(); 
+            
+            document.getElementById('txAmount').value = tx.amount;
+            document.getElementById('txCategory').value = tx.category;
+            document.getElementById('txDesc').value = tx.desc;
+            document.getElementById('txDate').value = formatDateToInput(tx.date);
+
+            if (tx.type === 'savings') {
+                document.getElementById('txFromWallet').value = tx.fromWallet;
+                document.getElementById('txToWallet').value = tx.toWallet;
+            } else {
+                document.getElementById('txWallet').value = tx.wallet;
+            }
+
+            txModal.classList.add('active');
+        });
+
+        // Modal Detalles Billetera y Portafolio
+        const walletDetailsModal = document.getElementById('walletDetailsModal');
+        let activeWalletId = null;
+
+        document.getElementById('closeWalletDetailsModal').addEventListener('click', () => walletDetailsModal.classList.remove('active'));
+
+        window.updateAssetNominals = (ticker) => {
+            const asset = portfolio.find(p => p.ticker === ticker);
+            if (!asset) return;
+            const newNominals = prompt(`Actualizar CANTIDAD de ${ticker}:`, asset.nominals);
+            if (newNominals !== null && newNominals.trim() !== '') {
+                asset.nominals = parseFloat(newNominals) || 0;
+                localStorage.setItem('em_v3_portfolio', JSON.stringify(portfolio));
+                openWalletDetails('balanz'); 
+            }
+        };
+
+        window.addPortfolioAsset = () => {
+            const ticker = prompt('Ingresa el Ticker del nuevo activo (ej: YPFD):');
+            if (!ticker) return;
+            const type = prompt('Tipo (Acciones, CEDEARs, Fondos, etc):', 'Acciones');
+            const nominals = prompt('Cantidad de nominales:', '0');
+            
+            portfolio.push({
+                ticker: ticker.toUpperCase(),
+                type: type || 'Otros',
+                nominals: parseFloat(nominals) || 0
+            });
+            localStorage.setItem('em_v3_portfolio', JSON.stringify(portfolio));
+            openWalletDetails('balanz');
+        };
+
+        window.openWalletDetails = (walletId) => {
+            activeWalletId = walletId;
+            calculateBalances();
+            const w = calculatedWallets.find(x => x.id === walletId);
+            document.getElementById('walletDetailsTitle').innerText = w.name;
+            document.getElementById('walletDetailsBalance').innerHTML = `${formatMoney(w.balance)} <i class="fa-solid fa-pen" style="font-size: 18px; opacity: 0.7; margin-left: 8px;"></i>`;
+
+            // Mostrar u ocultar portafolio
+            const portSection = document.getElementById('portfolioSection');
+            if (walletId === 'balanz') {
+                portSection.classList.remove('hidden');
+                const pList = document.getElementById('portfolioList');
+                pList.innerHTML = portfolio.map(asset => `
+                    <div class="portfolio-item">
+                        <div class="p-info">
+                            <h5 style="font-size: 16px;">${asset.ticker}</h5>
+                            <p style="color: var(--text-muted);">${asset.type}</p>
+                        </div>
+                        <div class="p-values">
+                            <h5 onclick="updateAssetNominals('${asset.ticker}')" style="cursor: pointer; color: var(--primary); font-size: 18px;">
+                                ${asset.nominals} <span style="font-size:11px; font-weight:normal; color: var(--text-muted);">nominales</span> <i class="fa-solid fa-pen" style="font-size: 12px; margin-left: 4px;"></i>
+                            </h5>
+                        </div>
+                    </div>
+                `).join('') + `
+                    <button onclick="addPortfolioAsset()" style="width: 100%; padding: 12px; border-radius: 12px; background-color: var(--surface-hover); color: var(--text-main); border: 1px dashed var(--border-color); font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; margin-bottom: 16px;">
+                        <i class="fa-solid fa-plus"></i> Agregar Activo
+                    </button>
+                `;
+            } else {
+                portSection.classList.add('hidden');
+            }
+
+            const wTxs = transactions.filter(tx => tx.wallet === walletId || tx.fromWallet === walletId || tx.toWallet === walletId)
+                                     .sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            const txList = document.getElementById('walletTxsList');
+            if(wTxs.length === 0) {
+                txList.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">No hay movimientos en esta cuenta.</p>`;
+            } else {
+                txList.innerHTML = wTxs.map(generateTxHTML).join('');
+            }
+
+            walletDetailsModal.classList.add('active');
+        };
+
+        window.editWalletTotal = () => {
+            if (!activeWalletId) return;
+            const currentW = calculatedWallets.find(x => x.id === activeWalletId);
+            const w = wallets.find(x => x.id === activeWalletId);
+            if (!w || !currentW) return;
+            
+            const newTotal = prompt(`Ingresa el saldo total ACTUAL de ${w.name} ($):`, currentW.balance);
+            if (newTotal !== null && newTotal.trim() !== '') {
+                const parsedTotal = parseInt(newTotal) || 0;
+                // Ajustamos el initialBalance para que el balance calculado dé exactamente el total ingresado
+                const diff = parsedTotal - currentW.balance;
+                w.initialBalance = (parseInt(w.initialBalance) || 0) + diff;
+                
+                localStorage.setItem('em_v3_wallets', JSON.stringify(wallets));
+                calculateBalances();
+                openWalletDetails(activeWalletId);
+                refreshActiveView();
+            }
+        };
+
+        // --- PROFILE ACTIONS ---
+        document.getElementById('clearDataBtn').addEventListener('click', () => {
+            if(confirm('¿Estás seguro? Esto eliminará todos los movimientos y restablecerá los saldos. Esta acción no se puede deshacer.')) {
+                localStorage.removeItem('em_v3_transactions');
+                localStorage.removeItem('em_v3_wallets');
+                localStorage.removeItem('em_v3_portfolio');
+                transactions = [];
+                wallets = defaultWallets;
+                portfolio = defaultPortfolio;
+                refreshActiveView();
+                alert('Datos borrados con éxito.');
+            }
+        });
+
+        document.getElementById('importDataBtn').addEventListener('click', () => {
+            document.getElementById('importDataInput').click();
+        });
+
+        document.getElementById('importDataInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.wallets) {
+                        wallets = data.wallets;
+                        localStorage.setItem('em_v3_wallets', JSON.stringify(wallets));
+                    }
+                    if (data.transactions) {
+                        transactions = data.transactions;
+                        localStorage.setItem('em_v3_transactions', JSON.stringify(transactions));
+                    }
+                    if (data.portfolio) {
+                        portfolio = data.portfolio;
+                        localStorage.setItem('em_v3_portfolio', JSON.stringify(portfolio));
+                    }
+                    alert('Datos importados con éxito.');
+                    refreshActiveView();
+                } catch(err) {
+                    alert('Error al importar el archivo JSON. Verifica que sea el formato correcto.');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // Reset input
+        });
+
+        document.getElementById('exportDataBtn').addEventListener('click', () => {
+            const dataStr = JSON.stringify({ wallets, portfolio, transactions }, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'easemoney_backup.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        });
+
+        function refreshActiveView() {
+            if (document.getElementById('view-home').classList.contains('active')) renderHome();
+            if (document.getElementById('view-wallets').classList.contains('active')) renderWalletsView();
+            if (document.getElementById('view-stats').classList.contains('active')) renderCharts();
+            if (walletDetailsModal.classList.contains('active') && activeWalletId) {
+                openWalletDetails(activeWalletId);
+            }
+        }
+
+        renderHome();
+
+    </script>
+</body>
+</html>
